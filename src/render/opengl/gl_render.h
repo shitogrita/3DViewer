@@ -69,8 +69,8 @@ namespace s21 {
 		~GlRender();
 
 		bool Initialize(QOpenGLFunctions_3_3_Core* f,
-					const QString& vertex_shader = "/Users/margaritaahmetova/repo/3dvier/src/resources/shaders/basic.vert",
-					const QString& fragment_shader = "/Users/margaritaahmetova/repo/3dvier/src/resources/shaders/basic.frag");
+					const QString& vertex_shader = "resources/shaders/basic.vert",
+					const QString& fragment_shader = "resources/shaders/basic.frag");
 
 
 		// парсера:
