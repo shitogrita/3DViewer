@@ -11,23 +11,39 @@ namespace s21{
 
 	class AffineTransformation {
 	public:
+		static S21Matrix Translation4(double dx, double dy, double dz);
+
 		static S21Matrix Identity4();
 		static S21Matrix Identity3();
 		static S21Matrix RotateBy(const S21Matrix& matrix, double OX_degree, double OY_degree, double OZ_degree);
 		static S21Matrix MoveObject(const S21Matrix& matrix, double x, double y, double z);
 		static S21Matrix Stretch(const S21Matrix& matrix, double rate);
 
-	private:
-		static S21Matrix ExpandMatrix(const S21Matrix &expanding_matrix);
-		static S21Matrix ShrinkMatrix(const S21Matrix &shrinking_matrix);
+		static S21Matrix ModelRotateAroundCenter4(const S21Matrix& vertices3xN,
+										  double ox_deg, double oy_deg, double oz_deg);
 
-		static S21Matrix Translation4(double dx, double dy, double dz);
 
 		static S21Matrix GetRotationYMatrix(double fi);
 		static S21Matrix GetRotationXMatrix(double fi);
 		static S21Matrix GetRotationZMatrix(double fi);
+
+		static std::array <float, 16> GetColMajor(const S21Matrix& matrix) {
+			std::array<float, 16> out{};
+			for (int r = 0; r < 4; ++r) {
+				for (int c = 0; c < 4; ++c) {
+					out[c * 4 + r] = static_cast<float>(matrix(r, c));
+				}
+			}
+			return out;
+		}
+
+	private:
+		static S21Matrix ExpandMatrix(const S21Matrix &expanding_matrix);
+		static S21Matrix ShrinkMatrix(const S21Matrix &shrinking_matrix);
+
 		static S21Matrix ApplyTransformation(const S21Matrix& x, const S21Matrix& A, const Vec3& t);
 
+		static S21Matrix BuildAffine4(const S21Matrix& A, const Vec3& t);
 
 		static s21::Vec3 ComputeBBoxCenter(const S21Matrix& v) {
 			// v: 3xN

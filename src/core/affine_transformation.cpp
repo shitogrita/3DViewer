@@ -45,22 +45,25 @@ namespace s21 {
 		return matrix;
 	}
 
-	S21Matrix AffineTransformation::ApplyTransformation(const S21Matrix &x, const S21Matrix &A, const Vec3 &t) {
+	S21Matrix AffineTransformation::BuildAffine4(const S21Matrix& A, const Vec3& t) {
 		S21Matrix T(4, 4);
 		for (int i = 0; i < 3; ++i) {
 			for (int j = 0; j < 3; ++j) {
-				T[i][j] = A[i][j];
+				T(i, j) = A(i, j);
 			}
 		}
+		T(0, 3) = t.x;
+		T(1, 3) = t.y;
+		T(2, 3) = t.z;
+		T(3, 0) = 0.0; T(3, 1) = 0.0; T(3, 2) = 0.0; T(3, 3) = 1.0;
 
-		T[0][3] = t.x;
-		T[1][3] = t.y;
-		T[2][3] = t.z;
-		T[3][0] = 0.0;
-		T[3][1] = 0.0;
-		T[3][2] = 0.0;
-		T[3][3] = 1.0;
+		return T;
+	}
 
+	S21Matrix AffineTransformation::ApplyTransformation(const S21Matrix& x,
+													const S21Matrix& A,
+													const Vec3& t) {
+		const S21Matrix T = BuildAffine4(A, t);
 		return ShrinkMatrix(T * ExpandMatrix(x));
 	}
 
@@ -105,12 +108,37 @@ namespace s21 {
 											double OZ_degree) {
 		const Vec3 c = ComputeBBoxCenter(matrix);
 
-		auto moved0 = ApplyTransformation(matrix, Identity4(), Vec3{-c.x, -c.y, -c.z});
-		auto r1 = ApplyTransformation(moved0, GetRotationXMatrix(OX_degree), {});
-		auto r2 = ApplyTransformation(r1, GetRotationYMatrix(OY_degree), {});
-		auto r3 = ApplyTransformation(r2, GetRotationZMatrix(OZ_degree), {});
-		auto moved1 = ApplyTransformation(r3, Identity4(), Vec3{c.x, c.y, c.z});
-		return moved1;
+		//auto moved0 = ApplyTransformation(matrix, Identity4(), Vec3{-c.x, -c.y, -c.z});
+		//auto r1 = ApplyTransformation(moved0, GetRotationXMatrix(OX_degree), {});
+		//auto r2 = ApplyTransformation(r1, GetRotationYMatrix(OY_degree), {});
+		//auto r3 = ApplyTransformation(r2, GetRotationZMatrix(OZ_degree), {});
+		//auto moved1 = ApplyTransformation(r3, Identity4(), Vec3{c.x, c.y, c.z});
+		//return moved1;
+
+		// M = T(c) * Rz * Ry * Rx * T(-c)
+		const S21Matrix T0 = Translation4(-c.x, -c.y, -c.z);
+		const S21Matrix Rx = GetRotationXMatrix(OX_degree);
+		const S21Matrix Ry = GetRotationYMatrix(OY_degree);
+		const S21Matrix Rz = GetRotationZMatrix(OZ_degree);
+		const S21Matrix T1 = Translation4(c.x, c.y, c.z);
+
+		const S21Matrix M = T1 * (Rz * (Ry * (Rx * T0)));
+
+		return ShrinkMatrix(M * ExpandMatrix(matrix));
+
+	}
+
+	S21Matrix AffineTransformation::ModelRotateAroundCenter4(const S21Matrix& vertices3xN,
+														 double ox_deg, double oy_deg, double oz_deg) {
+		const Vec3 c = ComputeBBoxCenter(vertices3xN);
+
+		const S21Matrix T0 = Translation4(-c.x, -c.y, -c.z);
+		const S21Matrix Rx = GetRotationXMatrix(ox_deg);
+		const S21Matrix Ry = GetRotationYMatrix(oy_deg);
+		const S21Matrix Rz = GetRotationZMatrix(oz_deg);
+		const S21Matrix T1 = Translation4(c.x, c.y, c.z);
+
+		return T1 * (Rz * (Ry * (Rx * T0)));
 	}
 
 	S21Matrix AffineTransformation::Identity3() {

@@ -371,6 +371,8 @@ S21Matrix& S21Matrix::operator*=(const S21Matrix& other) {
 
 double& S21Matrix::operator()(int i, int j) { return matrix_[i][j]; }
 
+double S21Matrix::operator()(int i, int j) const { return matrix_[i][j]; }
+
 
 // не нужный алгоритм Штрассена (потому что я напридумывала хуйни)
 
