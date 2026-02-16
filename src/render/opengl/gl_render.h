@@ -87,7 +87,7 @@ namespace s21 {
 	private:
 		QOpenGLFunctions_3_3_Core* f_ = nullptr;
 
-		QOpenGLShaderProgram program_;
+		QOpenGLShaderProgram program_; // вообще после последнего апдейта можно удалить
 		int loc_mvp_ = -1; // location for uMVP
 		int loc_color_ = -1; // location for color (for 1)
 

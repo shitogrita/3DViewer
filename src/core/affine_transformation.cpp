@@ -155,4 +155,13 @@ namespace s21 {
 		return  ApplyTransformation(matrix, Identity3() , {x, y, z} );
 	}
 
+	std::array<float, 16> AffineTransformation::GetColMajor(const S21Matrix& matrix) {
+		std::array<float, 16> out{};
+		for (int r = 0; r < 4; ++r) {
+			for (int c = 0; c < 4; ++c) {
+				out[c * 4 + r] = static_cast<float>(matrix(r, c));
+			}
+		}
+		return out;
+	}
 }

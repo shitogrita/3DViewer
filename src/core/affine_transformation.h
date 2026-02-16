@@ -21,21 +21,11 @@ namespace s21{
 
 		static S21Matrix ModelRotateAroundCenter4(const S21Matrix& vertices3xN,
 										  double ox_deg, double oy_deg, double oz_deg);
-
-
 		static S21Matrix GetRotationYMatrix(double fi);
 		static S21Matrix GetRotationXMatrix(double fi);
 		static S21Matrix GetRotationZMatrix(double fi);
 
-		static std::array <float, 16> GetColMajor(const S21Matrix& matrix) {
-			std::array<float, 16> out{};
-			for (int r = 0; r < 4; ++r) {
-				for (int c = 0; c < 4; ++c) {
-					out[c * 4 + r] = static_cast<float>(matrix(r, c));
-				}
-			}
-			return out;
-		}
+		static std::array <float, 16> GetColMajor(const S21Matrix& matrix);
 
 	private:
 		static S21Matrix ExpandMatrix(const S21Matrix &expanding_matrix);

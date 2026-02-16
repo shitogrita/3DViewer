@@ -1,2 +1,3 @@
-add_library(gl_widget
-        gl_widget.cpp)
+add_library(view STATIC
+        gl_widget.cpp
+        test_meshes.cpp)
