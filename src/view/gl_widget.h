@@ -24,6 +24,38 @@ namespace s21 {
 		explicit GlWidget(QWidget* parent = nullptr);
 		~GlWidget() override;
 
+		// interface
+		void SetBackgroundColor(const QColor& c);
+
+		void SetProjectionType(int type);
+
+		void SetEdgesDashed(bool on);
+		void SetEdgeWidth(float w);
+		void SetEdgeColor(const QColor& c);
+
+		void SetVertexMode(int mode);
+		void SetVertexSize(float s);
+		void SetVertexColor(const QColor& c);
+
+		void SetDashPeriod(float p);
+		void SetDashFill(float f);
+
+		void SetFillEnabled(bool on);
+		void SetFillAlpha(float a);
+		void SetFillColor(const QColor& c, float a);
+		void SetRotationDegrees(double ax_deg, double ay_deg, double az_deg);
+		void ResetRotation();
+
+		struct RotationDeg {
+			double x;
+			double y;
+			double z;
+		};
+		RotationDeg GetRotationDegrees() const;
+
+	signals:
+	  void RotationChanged(double ax_deg, double ay_deg, double az_deg);
+
 	protected:
 		void initializeGL() override;
 		void resizeGL(int w, int h) override;

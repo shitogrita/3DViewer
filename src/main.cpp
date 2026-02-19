@@ -3,6 +3,7 @@
 #include <QSurfaceFormat>
 
 #include "view/gl_widget.h"
+#include "view/interface.h"
 
 int main(int argc, char* argv[]) {
 	QSurfaceFormat fmt;
@@ -15,7 +16,11 @@ int main(int argc, char* argv[]) {
 
 	QMainWindow w;
 	auto* gl = new s21::GlWidget(&w);
-	w.setCentralWidget(gl);
+
+	auto* ui = new s21::Interface(gl);
+
+	// w.setCentralWidget(gl);
+	w.setCentralWidget(ui);
 	w.resize(900, 700);
 	w.show();
 

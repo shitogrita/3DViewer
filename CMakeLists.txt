@@ -18,6 +18,7 @@ if(Qt6_FOUND)
             src/render/opengl/gl_render.cpp
             src/render/opengl/gl_shader_loader.cpp
             src/view/test_meshes.cpp
+            src/view/interface.cpp
 
     )
     target_include_directories(cpu_viewer PRIVATE src)
@@ -26,8 +27,6 @@ else()
     find_package(Qt5 REQUIRED COMPONENTS Widgets)
     add_executable(cpu_viewer
             src/main.cpp
-            "src/deleteOLD/viewer_test.h"
-            "src/deleteOLD/viewer_test.cpp"
             src/core/matrix.cpp
             src/core/affine_transformation.cpp
     )
