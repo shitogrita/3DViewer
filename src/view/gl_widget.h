@@ -12,8 +12,6 @@
 #include "core/projection.h"
 #include "../render/opengl/gl_render.h"
 
-#include "view/test_meshes.h"
-
 
 namespace s21 {
 
@@ -57,14 +55,35 @@ namespace s21 {
 	  void RotationChanged(double ax_deg, double ay_deg, double az_deg);
 
 	protected:
+		void FitViewToMesh_();
+
 		void initializeGL() override;
 		void resizeGL(int w, int h) override;
 		void paintGL() override;
 
 		void keyPressEvent(QKeyEvent* e) override;
 		void keyReleaseEvent(QKeyEvent* e) override;
+	public:
+		void SetFillOpaque(bool opaque);
+	private:
+		float fill_alpha_saved_ = 0.8f;
+
+		signals:
+  void FillEnabledChanged(bool on);
+
 
 	private:
+		bool render_ready_ = false;
+
+	public:
+
+		bool LoadModelFromObjFile(const QString& path);
+
+		bool GetFillEnabled() const { return params_.fill_enabled; }
+		bool GetFillOpaque() const { return params_.fill_rgba[3] >= 0.999f; }
+
+
+
 		enum class ProjectionMode { kPerspective, kOrtho };
 
 		void TickInput_();
@@ -99,6 +118,33 @@ namespace s21 {
 
 		QTimer timer_;
 		QSet<int> keys_;
+
+		signals:
+		  void ScaleChanged(double s);
+
+	public:
+		double GetScale() const { return scale_; }
+
+		void SetScale(double s);
+		void ScaleBy(double k);
+		void ResetScale();
+
+	private:
+		double scale_ = 1.0;
+
+		signals:
+		void ModelInfoChanged(const QString& file_name, int vertex_count, int edge_count);
+
+	public:
+		QString GetModelFileName() const { return model_file_name_; }
+		int GetVertexCount() const { return model_vertex_count_; }
+		int GetEdgeCount() const { return model_edge_count_; }
+
+
+	private:
+		QString model_file_name_ = "—";
+		int model_vertex_count_ = 0;
+		int model_edge_count_ = 0;
 	};
 
 }

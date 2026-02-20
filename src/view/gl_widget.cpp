@@ -2,6 +2,8 @@
 
 #include <QKeyEvent>
 #include <algorithm>
+#include "parser/obj_parser.h"
+#include <QFileInfo>
 
 namespace s21 {
   namespace {
@@ -14,7 +16,6 @@ namespace s21 {
   GlWidget::GlWidget(QWidget* parent) : QOpenGLWidget(parent), params_{} {
     setFocusPolicy(Qt::StrongFocus);
 
-    // Параметры по умолчанию: каркас + серый фон, чтобы чёрные линии были видны
     params_.fill_enabled = false;
     params_.draw_edges = true;
 
@@ -47,9 +48,6 @@ namespace s21 {
     params_.dash_period = 0.05f;
     params_.dash_fill   = 0.50f;
 
-    //тестовый меш
-    mesh_ = s21::test_meshes::MakeTorus(1.0f, 0.5f, 64, 32);
-
     connect(&timer_, &QTimer::timeout, this, [this]() {
       TickInput_();
       update();
@@ -63,6 +61,81 @@ namespace s21 {
     doneCurrent();
   }
 
+
+  void GlWidget::SetFillOpaque(bool opaque) {
+    params_.fill_rgba[3] = opaque ? 1.0f : 0.99f;
+    params_.transparent = !opaque;
+
+    update();
+  }
+
+  void GlWidget::SetFillAlpha(float a) {
+    params_.fill_rgba[3] = std::clamp(a, 0.0f, 1.0f);
+
+    if (params_.fill_rgba[3] < 0.999f) {
+      fill_alpha_saved_ = params_.fill_rgba[3];
+    }
+    update();
+  }
+
+  static bool LoadObjToMeshData(const std::string& filename, s21::GlRender::MeshData& out) {
+    std::vector<s21::Vertex> v;
+    std::vector<s21::Edge>   e;
+    std::vector<std::uint32_t>          t;
+
+    if (!s21::ObjParser::Parse(filename, v, e, t)) return false;
+
+    out.vertices_xyz.clear();
+    out.edge_indices.clear();
+    out.tri_indices.clear();
+
+    out.vertices_xyz.reserve(v.size() * 3);
+    for (const auto& p : v) {
+      out.vertices_xyz.push_back(static_cast<float>(p.x));
+      out.vertices_xyz.push_back(static_cast<float>(p.y));
+      out.vertices_xyz.push_back(static_cast<float>(p.z));
+    }
+
+    out.edge_indices.reserve(e.size() * 2);
+    for (const auto& ed : e) {
+      out.edge_indices.push_back(static_cast<std::uint32_t>(ed.first));
+      out.edge_indices.push_back(static_cast<std::uint32_t>(ed.second));
+    }
+
+    out.tri_indices = std::move(t);
+    return true;
+  }
+
+  static void ComputeBoundsFromVerticesXYZ(const std::vector<float>& xyz,
+                                         double& cx, double& cy, double& cz,
+                                         double& r) {
+    if (xyz.size() < 3) { cx = cy = cz = 0.0; r = 1.0; return; }
+
+    double minx = xyz[0], maxx = xyz[0];
+    double miny = xyz[1], maxy = xyz[1];
+    double minz = xyz[2], maxz = xyz[2];
+
+    for (size_t i = 0; i + 2 < xyz.size(); i += 3) {
+      const double x = xyz[i + 0];
+      const double y = xyz[i + 1];
+      const double z = xyz[i + 2];
+      minx = std::min(minx, x); maxx = std::max(maxx, x);
+      miny = std::min(miny, y); maxy = std::max(maxy, y);
+      minz = std::min(minz, z); maxz = std::max(maxz, z);
+    }
+
+    cx = 0.5 * (minx + maxx);
+    cy = 0.5 * (miny + maxy);
+    cz = 0.5 * (minz + maxz);
+
+    const double dx = (maxx - minx);
+    const double dy = (maxy - miny);
+    const double dz = (maxz - minz);
+
+    r = 0.5 * std::sqrt(dx*dx + dy*dy + dz*dz);
+    if (r < 1e-9) r = 1.0;
+  }
+
   void GlWidget::initializeGL() {
     initializeOpenGLFunctions();
 
@@ -70,7 +143,45 @@ namespace s21 {
       qWarning() << "GlRender Initialize failed";
       return;
     }
+
+    render_ready_ = true;
+
+    const QString path = "parser/examples/airboat.obj";
+    LoadObjToMeshData(path.toStdString(), mesh_);
     render_.UploadMesh(mesh_);
+
+    model_file_name_ = QFileInfo(path).fileName();
+    model_vertex_count_ = static_cast<int>(mesh_.vertices_xyz.size() / 3);
+    model_edge_count_   = static_cast<int>(mesh_.edge_indices.size() / 2);
+
+    emit ModelInfoChanged(model_file_name_, model_vertex_count_, model_edge_count_);
+  }
+
+  bool GlWidget::LoadModelFromObjFile(const QString& path) {
+    if (path.isEmpty()) return false;
+
+    s21::GlRender::MeshData new_mesh;
+    if (!LoadObjToMeshData(path.toStdString(), new_mesh)) {
+      return false;
+    }
+
+    mesh_ = std::move(new_mesh);
+
+    if (render_ready_) {
+      makeCurrent();
+      render_.UploadMesh(mesh_);
+      doneCurrent();
+
+
+      model_file_name_ = QFileInfo(path).fileName();
+      model_vertex_count_ = static_cast<int>(mesh_.vertices_xyz.size() / 3);
+      model_edge_count_   = static_cast<int>(mesh_.edge_indices.size() / 2);
+
+      emit ModelInfoChanged(model_file_name_, model_vertex_count_, model_edge_count_);
+    }
+
+    update();
+    return true;
   }
 
   void GlWidget::resizeGL(int w, int h) {
@@ -82,13 +193,12 @@ namespace s21 {
     render_.Render(mvp_col_major_, params_);
   }
 
-
   void GlWidget::keyPressEvent(QKeyEvent* e) {
     if (!e->isAutoRepeat()) keys_.insert(e->key());
 
     if (!e->isAutoRepeat()) {
-      if (e->key() == Qt::Key_P) ToggleProjection_();  // Perspective <-> Ortho
-      if (e->key() == Qt::Key_Z) ToggleFill_();        // fill on/off
+      if (e->key() == Qt::Key_P) ToggleProjection_();
+      if (e->key() == Qt::Key_Z) ToggleFill_();
     }
     QOpenGLWidget::keyPressEvent(e);
   }
@@ -144,8 +254,10 @@ namespace s21 {
                      : ProjectionMode::kPerspective;
   }
 
-  void GlWidget::ToggleFill_() { // заливка граней
+  void GlWidget::ToggleFill_() {
     params_.fill_enabled = !params_.fill_enabled;
+    emit FillEnabledChanged(params_.fill_enabled);
+    update();
   }
 
   void GlWidget::UpdateMvp_() {
@@ -154,7 +266,16 @@ namespace s21 {
     const S21Matrix Rx = s21::AffineTransformation::GetRotationXMatrix(ax_);
     const S21Matrix Ry = s21::AffineTransformation::GetRotationYMatrix(ay_);
     const S21Matrix Rz = s21::AffineTransformation::GetRotationZMatrix(az_);
-    const S21Matrix M = Rz * (Ry * Rx);
+    const S21Matrix R = Rz * (Ry * Rx);
+
+    S21Matrix S(4, 4);
+    for (int i = 0; i < 4; ++i) for (int j = 0; j < 4; ++j) S(i, j) = 0.0;
+    S(0,0) = scale_;
+    S(1,1) = scale_;
+    S(2,2) = scale_;
+    S(3,3) = 1.0;
+
+    const S21Matrix M = R * S;
 
     const S21Matrix V =
         s21::AffineTransformation::Translation4(-cam_x_, -cam_y_, -cam_z_);
@@ -233,14 +354,12 @@ namespace s21 {
   }
 
   void GlWidget::SetFillEnabled(bool on) {
+    if (params_.fill_enabled == on) return;
     params_.fill_enabled = on;
+    emit FillEnabledChanged(on);
     update();
   }
 
-  void GlWidget::SetFillAlpha(float a) {
-    params_.fill_rgba[3] = std::clamp(a, 0.0f, 1.0f);
-    update();
-  }
 
   void GlWidget::SetFillColor(const QColor& c, float a) {
     params_.fill_rgba[0] = c.redF();
@@ -268,5 +387,22 @@ namespace s21 {
     az_ = 0.0;
     NormalizeAngles_();
     update();
+  }
+
+  void GlWidget::SetScale(double s) {
+    s = std::clamp(s, 0.001, 1000.0);
+    if (std::abs(scale_ - s) < 1e-12) return;
+    scale_ = s;
+    emit ScaleChanged(scale_);
+    update();
+  }
+
+  void GlWidget::ScaleBy(double k) {
+    if (k <= 0.0) return;
+    SetScale(scale_ * k);
+  }
+
+  void GlWidget::ResetScale() {
+    SetScale(1.0);
   }
 }

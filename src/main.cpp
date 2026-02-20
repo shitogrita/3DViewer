@@ -1,11 +1,12 @@
 #include <QApplication>
 #include <QMainWindow>
 #include <QSurfaceFormat>
+#include "parser/obj_parser.h"
 
 #include "view/gl_widget.h"
 #include "view/interface.h"
 
-int main(int argc, char* argv[]) {
+int run_program(int argc, char* argv[]) {
 	QSurfaceFormat fmt;
 	fmt.setVersion(3, 3);
 	fmt.setProfile(QSurfaceFormat::CoreProfile);
@@ -21,8 +22,13 @@ int main(int argc, char* argv[]) {
 
 	// w.setCentralWidget(gl);
 	w.setCentralWidget(ui);
-	w.resize(900, 700);
+	w.resize(900, 900);
 	w.show();
 
 	return app.exec();
+}
+
+
+int main(int argc, char* argv[]) {
+	return run_program(argc, argv);
 }

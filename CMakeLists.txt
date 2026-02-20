@@ -17,8 +17,8 @@ if(Qt6_FOUND)
             src/view/gl_widget.cpp
             src/render/opengl/gl_render.cpp
             src/render/opengl/gl_shader_loader.cpp
-            src/view/test_meshes.cpp
             src/view/interface.cpp
+            src/parser/obj_parser.cpp
 
     )
     target_include_directories(cpu_viewer PRIVATE src)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QLabel>
 #include <QWidget>
 
 class QButtonGroup;
@@ -31,6 +32,12 @@ namespace s21 {
 		void OnTabClicked(int id);
 		void OnClosePanel();
 
+		static QByteArray ImageToBytes_(const QImage& img,
+								 const char* format,
+								 int quality);
+
+		void SaveRenderedImage_();
+
 		QWidget* MakePageProjection_();
 		QWidget* MakePageEdges_();
 		QWidget* MakePageVertices_();
@@ -43,5 +50,14 @@ namespace s21 {
 		QFrame* panel_ = nullptr;
 		QFrame* panelBox_ = nullptr;
 		QStackedWidget* pages_ = nullptr;
+
+		// interface.h (внутри class Interface)
+	private:
+		QWidget* infoBar_ = nullptr;
+		QLabel*  fileValue_ = nullptr;
+		QLabel*  vtxValue_  = nullptr;
+		QLabel*  edgeValue_ = nullptr;
+
+		void SetInfoBarVisible_(bool on);
 	};
 }
